@@ -26,14 +26,14 @@
 
 ```bash
 # 프로젝트 루트에서 실행
-docker build -t <registry>/egovframe-template-simple-backend:5.0.0 .
-docker push <registry>/egovframe-template-simple-backend:5.0.0
+docker build -t <registry>/egovframe-template-simple-backend:5.0.2 .
+docker push <registry>/egovframe-template-simple-backend:5.0.2
 ```
 
 `deployment.yaml`의 `image` 필드를 실제 레지스트리 경로로 교체하세요.
 
 ```yaml
-image: <registry>/egovframe-template-simple-backend:5.0.0
+image: <registry>/egovframe-template-simple-backend:5.0.2
 ```
 
 ## DB 설정 (중요)
@@ -63,13 +63,36 @@ Spring의 `spring.config.additional-location`으로 추가 로딩합니다.
   변경한 뒤 이미지를 재빌드하면 됩니다. 다만 컨테이너 환경에서는 위 환경변수 주입을 권장합니다.
 
 설정값은 `configmap.yaml`(`DB_TYPE`, `DB_URL`)과 Secret(`username`, `password`)에서 주입됩니다.
-배포 전 아래 명령으로 Secret을 생성하세요.
+배포 전 아래 명령으로 네임스페이스와 Secret을 생성하세요(이미 있는 네임스페이스는 재생성하지 않습니다).
 
 ```bash
-kubectl create secret generic egovframe-template-simple-backend-db \
-  --from-literal=username=<DB_USER> \
-  --from-literal=password=<DB_PASSWORD>
+kubectl create namespace egovframe
+# DB_USER / DB_PASSWORD를 실제 DB 자격증명으로 교체
+kubectl create secret generic egovframe-template-simple-backend-db -n egovframe \
+  --from-literal=username='DB_USER' \
+  --from-literal=password='DB_PASSWORD'
 ```
+
+## 보안 키와 쿠키 설정 (필수)
+
+두 키는 각각 별도의 무작위 값으로 생성하여 Deployment와 같은 네임스페이스에 저장합니다. 실제 키를 소스나 매니페스트에 커밋하지 마세요.
+
+```bash
+EGOV_JWT_SECRET="$(openssl rand -base64 48)"
+EGOV_CRYPTO_KEY="$(openssl rand -base64 48)"
+kubectl create secret generic egovframe-template-simple-backend-security -n egovframe \
+  --from-literal=jwt-secret="$EGOV_JWT_SECRET" \
+  --from-literal=crypto-key="$EGOV_CRYPTO_KEY"
+unset EGOV_JWT_SECRET EGOV_CRYPTO_KEY
+```
+
+`deployment.yaml`은 위 Secret의 `jwt-secret`과 `crypto-key`를 각각 `EGOV_JWT_SECRET`과 `EGOV_CRYPTO_KEY`로 주입합니다. 키 또는 Secret이 없으면 Pod가 기동하지 않습니다.
+
+`configmap.yaml`의 `JWT_COOKIE_SECURE`는 평문 HTTP 서비스에 맞춰 `"false"`이며 TLS 종단 뒤에서는 `"true"`로 변경하세요.
+
+시드 `admin`/`user` 계정 비밀번호는 최초 기동 후 변경하세요.
+
+운영에서는 Swagger를 끄거나 열어 둘 때 접근을 제한하세요. `configmap.yaml`의 기본값은 `SPRINGDOC_API_DOCS_ENABLED: "false"`, `SPRINGDOC_SWAGGER_UI_ENABLED: "false"`입니다.
 
 ## 외부 DB 스키마 적재 (필수)
 
@@ -144,9 +167,6 @@ mysql -h <DB_HOST> -u <DB_USER> -p <DB_NAME> < DATABASE/all_sht_data_mysql.sql
 ## 배포
 
 ```bash
-# 네임스페이스 생성(필요 시)
-kubectl create namespace egovframe
-
 # 매니페스트 적용
 kubectl apply -f k8s/configmap.yaml -n egovframe
 kubectl apply -f k8s/pvc.yaml       -n egovframe

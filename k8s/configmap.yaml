@@ -9,6 +9,10 @@ data:
   # 비밀이 아닌 설정값 — DB 자격증명(DB_USERNAME/DB_PASSWORD)은 Secret에서 주입된다.
   # 아래 DB_* 값은 docker-entrypoint.sh가 Globals.DbType / Globals.<dbtype>.Url 로 매핑한다.
   SPRING_PROFILES_ACTIVE: "prod"
+  # 기본 서비스는 평문 HTTP. TLS 종단 뒤에서는 true로 설정한다.
+  JWT_COOKIE_SECURE: "false"
+  SPRINGDOC_API_DOCS_ENABLED: "false"
+  SPRINGDOC_SWAGGER_UI_ENABLED: "false"
   DB_TYPE: "mysql"
   DB_URL: "jdbc:mysql://mysql:3306/egovdb?useSSL=false&allowPublicKeyRetrieval=true"
   # 게시판 첨부파일 저장 경로 — docker-entrypoint.sh가 Globals.fileStorePath 로 매핑한다.
