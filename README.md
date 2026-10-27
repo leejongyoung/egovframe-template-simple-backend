@@ -72,6 +72,16 @@ Environment="EGOV_CRYPTO_KEY=생성한_값"
 docker run -e EGOV_JWT_SECRET="생성한_값" -e EGOV_CRYPTO_KEY="생성한_값" <이미지명>
 ```
 
+Docker Compose는 `cp .env.example .env` 후 DB 비밀번호와 위 두 보안 키를 채워 `docker compose up --build -d`로 실행합니다. 보안 키가 비어 있으면 설정 렌더링 단계에서 실패합니다. 평문 HTTP 기본값은 `JWT_COOKIE_SECURE=false`이며 TLS 종단 뒤에서는 `true`로 설정하세요.
+
+시드 `admin`/`user` 계정 비밀번호는 최초 기동 후 변경하세요.
+
+MySQL은 앱과 Compose 내부 네트워크로 통신하므로 호스트 3306 포트는 공개하지 않습니다. 로컬 관리가 필요하면 `docker compose exec mysql-db mysql -u egov -p egovdb`를 사용하세요(DB 사용자·이름을 바꾼 경우 명령도 맞추세요).
+
+운영에서는 Swagger를 끄거나 열어 둘 때 접근을 제한하세요. Compose 배포 기본값은 `SPRINGDOC_API_DOCS_ENABLED=false`, `SPRINGDOC_SWAGGER_UI_ENABLED=false`이며 로컬 개발 기본 동작은 유지합니다.
+
+애플리케이션·배포 예시 버전은 `5.0.2`입니다. `pom.xml` 버전을 변경할 때 `.env.example`의 `APP_VERSION`, `docker-compose.yml` 기본 태그, `k8s/deployment.yaml` 이미지·주석, `k8s/README.md` 예시, `OpenApiConfig.API_VERSION`과 이 안내를 함께 갱신하세요.
+
 **운영 환경 (Jar 직접 실행)**
 ```bash
 export EGOV_JWT_SECRET="생성한_값"
