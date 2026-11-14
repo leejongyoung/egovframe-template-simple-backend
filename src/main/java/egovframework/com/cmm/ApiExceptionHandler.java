@@ -1,9 +1,13 @@
 package egovframework.com.cmm;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import egovframework.com.cmm.service.ResultVO;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +18,18 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RestControllerAdvice
-public class ApiExceptionHandler {
+public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
+
+	/** Preserve Spring MVC status codes and headers without returning exception details. */
+	@Override
+	protected ResponseEntity<Object> handleExceptionInternal(Exception exception, Object body,
+			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+		ResultVO result = new ResultVO();
+		result.setResultCode(status.value());
+		result.setResultMessage(status.is4xxClientError()
+				? "요청을 처리할 수 없습니다." : "요청 처리 중 오류가 발생했습니다.");
+		return super.handleExceptionInternal(exception, result, headers, status, request);
+	}
 
 	@ExceptionHandler(NumberFormatException.class)
 	public ResponseEntity<ResultVO> handleNumberFormatException(NumberFormatException exception) {
