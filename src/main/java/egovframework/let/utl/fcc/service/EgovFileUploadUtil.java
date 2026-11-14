@@ -109,6 +109,7 @@ public class EgovFileUploadUtil extends EgovFormBasedFileUtil {
 		List<EgovFormBasedFileVo> list = new ArrayList<EgovFormBasedFileVo>();
 
 		if (mptRequest != null) {
+			enforceMaxFileSize(mptRequest, maxFileSize); // 저장 전에 전체 파일 크기 사전검증 (일부만 저장되는 것 방지)
 			Iterator<?> fileIter = mptRequest.getFileNames();
 
 			while (fileIter.hasNext()) {
@@ -206,6 +207,27 @@ public class EgovFileUploadUtil extends EgovFormBasedFileUtil {
 			return true;
 		} else {
 			return false;
+		}
+	}
+
+	/**
+	 * 요청에 포함된 모든 파일이 최대 크기 이내인지 저장 전에 검증한다.
+	 * maxFileSize가 0 이하이면 제한하지 않는다. 한도와 같은 크기는 허용한다.
+	 *
+	 * @param mptRequest
+	 * @param maxFileSize : ex) 1048576 = 1M , 0 이하 = 제한 없음
+	 * @throws SecurityException 한도를 초과한 파일이 하나라도 있는 경우 (아무 파일도 저장하지 않음)
+	 */
+	private static void enforceMaxFileSize(MultipartHttpServletRequest mptRequest, long maxFileSize) {
+		if (maxFileSize <= 0) {
+			return;
+		}
+		Iterator<?> names = mptRequest.getFileNames();
+		while (names.hasNext()) {
+			MultipartFile file = mptRequest.getFile((String)names.next());
+			if (file != null && !checkFileMaxSize(file, maxFileSize)) {
+				throw new SecurityException("File size exceeds the allowed limit.");
+			}
 		}
 	}
 
